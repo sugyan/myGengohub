@@ -34,5 +34,12 @@ app.get('/', function(req, res){
     });
 });
 
+app.get('/repositories/:id', function (req, res) {
+    res.render('repositories/show', {
+        title: 'repository',
+        id: req.params.id
+    });
+});
+
 app.listen(3000);
 console.log("Express server listening on port %d", app.address().port);
