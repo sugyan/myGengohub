@@ -10,7 +10,13 @@ if (path.match(/^\/repositories\//)) {
                 repo: m[2]
             },
             success: function (data) {
-                $('body').append($('<pre>').text(data));
+                $('body')
+                    .append($('<form method="POST">')
+                            .append($('<textarea name="readme" disabled>').text(data))
+                            .append($('<input type="submit" value="translate!">'))
+                            .submit(function () {
+                                $('textarea').removeAttr('disabled');
+                            }));
             }
         });
     });

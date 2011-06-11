@@ -4,7 +4,19 @@
  */
 
 var express = require('express');
+var mongodb = require('mongodb');
 var GitHubApi = require('github').GitHubApi;
+var mygengo = require('./deps/mygengo_node');
+var config = require('./config');
+mygengo.init(config.pub, config.pri);
+var db = new mongodb.Db(
+    'myGengohub',
+    new mongodb.Server(
+        '127.0.0.1',
+        27017,
+        {}
+    )
+);
 
 var app = module.exports = express.createServer();
 
@@ -23,7 +35,7 @@ app.configure('development', function(){
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
-app.configure('production', function(){
+app.configure('production', function () {
     app.use(express.errorHandler());
 });
 
@@ -40,6 +52,36 @@ app.get('/repositories/:user/:repo', function (req, res) {
         title: 'repository',
         user: req.params.user,
         repo: req.params.repo
+    });
+});
+
+app.post('/repositories/:user/:repo', function (req, res) {
+    var data = {
+        job: {
+            type: "text",
+            slug: req.params.user + '/' + req.params.repo,
+            body_src: req.body.readme,
+            lc_src: 'en',
+            lc_tgt: 'ja',
+            tier: 'machine'
+        },
+        as_group: 0
+    };
+    console.log(data);
+    mygengo.postJob(data, function (err, data) {
+        if (err) {
+            console.error(err);
+            res.send(400);
+        }
+        console.log(data);
+        db.collection('repository', function (err, c) {
+            c.insert(data.response, function (err) {
+                if (err) {
+                    throw err;
+                }
+            });
+        });
+        res.redirect('/');
     });
 });
 
@@ -82,5 +124,10 @@ app.get('/api/repository', function (req, res) {
     });
 });
 
-app.listen(3000);
-console.log("Express server listening on port %d", app.address().port);
+db.open(function (err) {
+    if (err) {
+        throw err;
+    }
+    app.listen(3000);
+    console.log("Express server listening on port %d", app.address().port);
+});
