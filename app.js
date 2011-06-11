@@ -41,9 +41,17 @@ app.configure('production', function () {
 
 // Routes
 
-app.get('/', function (req, res){
-    res.render('index', {
-        title: 'Express'
+app.get('/', function (req, res) {
+    mygengo.getJobs({}, function (err, data) {
+        console.log(data.response.map(function (e) { return e.job_id; }));
+        db.collection('repository', function (err, collection) {
+            collection.find({ job_id: { $in: data.response.map(function (e) { return e.job_id; }) } }).toArray(function (err, data) {
+                res.render('index', {
+                    title: 'Express',
+                    data: data
+                });
+            });
+        });
     });
 });
 
@@ -75,7 +83,7 @@ app.post('/repositories/:user/:repo', function (req, res) {
         }
         console.log(data);
         db.collection('repository', function (err, c) {
-            c.insert(data.response, function (err) {
+            c.insert(data.response.job, function (err) {
                 if (err) {
                     throw err;
                 }
